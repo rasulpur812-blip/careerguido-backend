@@ -4,19 +4,22 @@ const mongoose = require("mongoose");
 const bcrypt = require("bcryptjs");
 
 const app = express();
-app.use(cors());
+
+// 🔥 FIXED CORS - Localhost + Surge ALLOW
+app.use(cors({
+  origin: [
+    'http://localhost:3000',
+    'https://careerguido.surge.sh'
+  ],
+  credentials: true
+}));
+
 app.use(express.json({ limit: '50mb' }));
 
-// 🔥 FIXED MONGODB CONNECTION - Render + Local
-mongoose.connect(process.env.MONGODB_URI || "mongodb://localhost:27017/guido", {
-  useNewUrlParser: true,
-  useUnifiedTopology: true,
-  serverSelectionTimeoutMS: 30000,  // 30 sec timeout
-  socketTimeoutMS: 45000,
-  family: 4  // IPv4 only
-})
-.then(() => console.log("✅ MongoDB guido CONNECTED"))
-.catch(err => console.error("❌ MongoDB ERROR:", err.message));
+// 🔥 FIXED MONGODB - NO Deprecated Options
+mongoose.connect(process.env.MONGODB_URI || "mongodb://localhost:27017/guido")
+  .then(() => console.log("✅ MongoDB guido CONNECTED"))
+  .catch(err => console.error("❌ MongoDB ERROR:", err.message));
 
 // 🔥 USER SCHEMA - Complete with testHistory + meetings
 const userSchema = new mongoose.Schema({
@@ -229,7 +232,7 @@ app.get('/api/debug', async (req, res) => {
   });
 });
 
-// 🔥 FIXED SERVER START - Render Compatible
+// 🔥 SERVER START - Render Compatible
 const PORT = process.env.PORT || 8000;
 app.listen(PORT, () => {
   console.log(`🚀 Backend: http://localhost:${PORT}`);
