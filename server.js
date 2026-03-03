@@ -7,10 +7,16 @@ const app = express();
 app.use(cors());
 app.use(express.json({ limit: '50mb' }));
 
-// 🔥 MONGODB CONNECTION - guido database
-mongoose.connect("mongodb://localhost:27017/guido")
-  .then(() => console.log("✅ MongoDB guido CONNECTED"))
-  .catch(err => console.error("❌ MongoDB ERROR:", err));
+// 🔥 FIXED MONGODB CONNECTION - Render + Local
+mongoose.connect(process.env.MONGODB_URI || "mongodb://localhost:27017/guido", {
+  useNewUrlParser: true,
+  useUnifiedTopology: true,
+  serverSelectionTimeoutMS: 30000,  // 30 sec timeout
+  socketTimeoutMS: 45000,
+  family: 4  // IPv4 only
+})
+.then(() => console.log("✅ MongoDB guido CONNECTED"))
+.catch(err => console.error("❌ MongoDB ERROR:", err.message));
 
 // 🔥 USER SCHEMA - Complete with testHistory + meetings
 const userSchema = new mongoose.Schema({
@@ -48,7 +54,7 @@ const meetingSchema = new mongoose.Schema({
   endTime: String,
   meetingLink: String,
   youtubeLink: String,
-  createdBy: String, // Admin name
+  createdBy: String,
   createdAt: { type: Date, default: Date.now }
 });
 
@@ -187,7 +193,6 @@ app.post('/api/join-meeting/:userId/:meetingId', async (req, res) => {
   try {
     const { userId, meetingId } = req.params;
     
-    // Update user meetings
     const user = await User.findById(userId);
     if (user) {
       const meeting = user.meetings.find(m => m._id?.toString() === meetingId);
@@ -224,7 +229,10 @@ app.get('/api/debug', async (req, res) => {
   });
 });
 
-app.listen(8000, () => {
-  console.log('🚀 Backend: http://localhost:8000');
-  console.log('🧪 Debug: http://localhost:8000/api/debug');
+// 🔥 FIXED SERVER START - Render Compatible
+const PORT = process.env.PORT || 8000;
+app.listen(PORT, () => {
+  console.log(`🚀 Backend: http://localhost:${PORT}`);
+  console.log(`🧪 Debug: http://localhost:${PORT}/api/debug`);
+  console.log(`✅ Render LIVE: https://careerguido-backend.onrender.com`);
 });
