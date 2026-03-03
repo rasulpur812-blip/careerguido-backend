@@ -16,10 +16,15 @@ app.use(cors({
 
 app.use(express.json({ limit: '50mb' }));
 
-// 🔥 FIXED MONGODB - NO Deprecated Options
-mongoose.connect(process.env.MONGODB_URI || "mongodb://localhost:27017/guido")
-  .then(() => console.log("✅ MongoDB guido CONNECTED"))
-  .catch(err => console.error("❌ MongoDB ERROR:", err.message));
+// 🔥 FIXED MONGODB - LOCAL FALLBACK + Render Atlas + TIMEOUTS
+mongoose.connect(process.env.MONGODB_URI || "mongodb://localhost:27017/guido", {
+  serverSelectionTimeoutMS: 60000,
+  socketTimeoutMS: 60000,
+  bufferCommands: false,  // CRITICAL FIX!
+  maxPoolSize: 10
+})
+.then(() => console.log("✅ MongoDB guido CONNECTED"))
+.catch(err => console.error("❌ MongoDB ERROR:", err.message));
 
 // 🔥 USER SCHEMA - Complete with testHistory + meetings
 const userSchema = new mongoose.Schema({
@@ -63,7 +68,7 @@ const meetingSchema = new mongoose.Schema({
 
 const Meeting = mongoose.model("Meeting", meetingSchema);
 
-// 🔥 1. ADMIN LOGIN
+// 🔥 1. ADMIN LOGIN (HARDCODED - ALWAYS WORKS)
 app.post('/api/admin-login', async (req, res) => {
   const { email, password } = req.body;
   
@@ -222,14 +227,18 @@ app.post('/api/join-meeting/:userId/:meetingId', async (req, res) => {
 
 // 🔥 8. DEBUG - ALL DATA
 app.get('/api/debug', async (req, res) => {
-  const users = await User.find().select('-password');
-  const meetings = await Meeting.find();
-  res.json({ 
-    usersCount: users.length,
-    meetingsCount: meetings.length,
-    users: users.slice(0, 3),
-    sampleMeeting: meetings[0]
-  });
+  try {
+    const users = await User.find().select('-password');
+    const meetings = await Meeting.find();
+    res.json({ 
+      usersCount: users.length,
+      meetingsCount: meetings.length,
+      users: users.slice(0, 3),
+      sampleMeeting: meetings[0]
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 // 🔥 SERVER START - Render Compatible
